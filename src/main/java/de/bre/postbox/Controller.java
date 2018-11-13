@@ -10,9 +10,17 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 public class Controller {
+
+    private Controller() {
+        lastHitOnAPI = System.currentTimeMillis();
+    }
+
+    private long lastHitOnAPI;
+
     @Resource(name = "myMailSender")
     public JavaMailSender emailSender;
 
@@ -30,13 +38,16 @@ public class Controller {
 
     @RequestMapping(path="/postbox", method = RequestMethod.GET)
     public ResponseEntity<?>  postbox() {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(from);
-        message.setTo(to);
-        message.setSubject(subject);
-        message.setText(text);
-        emailSender.send(message);
+        if (System.currentTimeMillis() - lastHitOnAPI > TimeUnit.MINUTES.toMillis(1)) {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(from);
+            message.setTo(to);
+            message.setSubject(subject);
+            message.setText(text);
+            emailSender.send(message);
 
+            lastHitOnAPI = System.currentTimeMillis();
+        }
         return new ResponseEntity(HttpStatus.OK);
     }
 }
