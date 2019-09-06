@@ -1,16 +1,12 @@
 package de.bre.postbox;
 
+import de.bre.postbox.actuator.TelegramActuator;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Resource;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -26,38 +22,25 @@ public class Controller {
 
   private long lastHitOnApi;
 
-  @Resource(name = "myMailSender")
-  public JavaMailSender emailSender;
-
-  @Value("${spring.mail.from}")
-  private String from;
-
-  @Value("${spring.mail.to}")
-  private String to;
-
-  @Value("${spring.mail.subject}")
-  private String subject;
-
-  @Value("${spring.mail.text}")
-  private String text;
+  @Resource(name = "telegramActuator")
+  public TelegramActuator telegramActuator;
 
   /**
-   * when called, sends mail to desired adress.
-   * To prevent spam/errors it does this only every minute.
+   * when called, sends mail or telegram message to desired adress. To prevent spam/errors it does
+   * this only every minute.
+   *
    * @return http 200
    */
   @RequestMapping(path = "/postbox", method = RequestMethod.GET)
-  public ResponseEntity<?>  postbox() {
+  public ResponseEntity<?> postbox() {
     log.info("API aufgerufen");
     if (System.currentTimeMillis() - lastHitOnApi > TimeUnit.MINUTES.toMillis(1)) {
-      SimpleMailMessage message = new SimpleMailMessage();
-      message.setFrom(from);
-      message.setTo(to);
-      message.setSubject(subject);
-      message.setText(text);
-      emailSender.send(message);
-      log.info("gültiges Postbox-Event. Versende Mail");
-
+      try {
+        telegramActuator.notifyUser();
+      } catch (Exception e) {
+        log.error(e.getMessage());
+      }
+      log.info("Benachrichtigung versendet mit " + telegramActuator.toString());
       lastHitOnApi = System.currentTimeMillis();
     }
     return new ResponseEntity(HttpStatus.OK);

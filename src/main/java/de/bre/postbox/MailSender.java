@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class MailSender {
+
   @Value("${spring.mail.username}")
   private String username;
 
@@ -22,6 +23,7 @@ public class MailSender {
 
   /**
    * sets needed server info und credentials.
+   *
    * @return ready to use mailSender
    */
   @Bean(name = "myMailSender")
